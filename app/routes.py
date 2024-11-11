@@ -4,6 +4,8 @@ from flask import Blueprint, request, jsonify, current_app
 from app.search_crawler import SearchAPICrawler
 from app.content_extractor import ContentExtractor
 from app.webhook_handler import send_webhook_to_botpress
+from app.summarizer import summarize_content
+import json
 import asyncio
 
 bp = Blueprint('main', __name__)
@@ -33,8 +35,16 @@ async def process_search(query, pages):
     extractor.extract_content()
     content = extractor.get_extracted_content()
 
+    # GPT summarizer
+    json_content = json.dumps(content, indent=2)
+    summary = summarize_content(query, json_content)
+
+    final_result = {
+        "WebSearch": summary
+    }
+
     #send results back to botpress
-    await send_webhook_to_botpress(content)
+    await send_webhook_to_botpress(final_result)
 
 @bp.route('/health', methods=['GET'])
 def health_check():
